@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Analytics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #1a73e8;
+            font-weight: 600;
+        }
+        .stats-section {
+            margin-bottom: 3rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #1a73e8;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .stat-label {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 0.5rem 0;
+        }
+        .channel-name {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        .video-item {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+        .video-item:hover {
+            background-color: #f8f9fa;
+        }
+        .video-item:last-child {
+            border-bottom: none;
+        }
+        .video-item h3 {
+            color: #1a73e8;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .video-stats {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat-item i {
+            color: #1a73e8;
+        }
+        .video-link {
+            display: inline-block;
+            color: white;
+            background-color: #1a73e8;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            margin-top: 1rem;
+        }
+        .video-link:hover {
+            background-color: #1557b0;
+            color: white;
+        }
+        .info-icon {
+            color: #1a73e8;
+            margin-left: 0.5rem;
+            font-size: 1.2rem;
+            cursor: help;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9rem;
+            font-weight: normal;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .error-message {
+            color: #dc3545;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            background-color: #fff;
+            border: 1px solid #dc3545;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="dashboard-header">YouTube Analytics Dashboard</h1>
+        
+        <!-- Overall Stats Section -->
+        <section class="stats-section">
+            <h2 class="section-title">Overall Statistics</h2>
+            <div class="stats-grid" id="overallStats">
+                <div class="card">
+                    <div class="stat-label">Loading statistics...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Top Performers Section -->
+        <section class="stats-section">
+            <h2 class="section-title">Top Performers</h2>
+            <div class="stats-grid" id="topPerformers">
+                <div class="card">
+                    <div class="stat-label">Loading top performers...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Latest Videos Section -->
+        <section class="stats-section">
+            <h2 class="section-title">Latest Videos</h2>
+            <div id="videoList" class="card">
+                <div class="video-item">Loading videos...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Helper function to safely format numbers
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '0';
+            return typeof num === 'number' ? num.toLocaleString() : '0';
+        }
+
+        // Helper function to safely get nested object properties
+        function safeGet(obj, path, defaultValue = '0') {
+            try {
+                return path.split('.').reduce((acc, part) => acc && acc[part], obj) ?? defaultValue;
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+
+        // Helper function to show error messages
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                    <div class="error-message">
+                        ${message}
+                    </div>
+                `;
+            }
+        }
+
+        // Fetch and display analytics data
+        async function fetchAnalytics() {
+            try {
+                const response = await fetch('/api/analytics/comparison', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                const data = await response.json();
+
+                if (!data) throw new Error('No data received');
+
+                const statsHtml = `
+                    <div class="card">
+                        <div class="stat-label"><i class="fas fa-video"></i> Total Videos</div>
+                        <div class="stat-value">${formatNumber(data.totalVideos)}</div>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label"><i class="fas fa-eye"></i> Total Views</div>
+                        <div class="stat-value">${formatNumber(data.totalViews)}</div>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label"><i class="fas fa-thumbs-up"></i> Total Likes</div>
+                        <div class="stat-value">${formatNumber(data.totalLikes)}</div>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label"><i class="fas fa-comments"></i> Total Comments</div>
+                        <div class="stat-value">${formatNumber(data.totalComments)}</div>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label">
+                            <i class="fas fa-chart-line"></i> Average Engagement
+                        </div>
+                        <div class="stat-value">${safeGet(data, 'averageEngagementRate', '0%')}</div>
+                        <div class="stat-description" style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                            Engagement rate shows how interactive your audience is with your content.<br>
+                            Formula: (Likes + Comments) / Views × 100
+                        </div>
+                    </div>
+                `;
+                document.getElementById('overallStats').innerHTML = statsHtml;
+            } catch (error) {
+                console.error('Error fetching analytics:', error);
+                showError('overallStats', 'Failed to load statistics. Please try again later.');
+            }
+        }
+
+        // Fetch and display top performers
+        async function fetchTopPerformers() {
+            try {
+                const response = await fetch('/api/analytics/highest', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                const data = await response.json();
+
+                if (!data || !data.highest) throw new Error('No data received');
+
+                const topPerformersHtml = Object.entries(data.highest)
+                    .filter(([_, video]) => video !== null)
+                    .map(([category, video]) => {
+                        let value = '';
+                        let icon = '';
+                        let label = '';
+                        
+                        switch(category) {
+                            case 'views':
+                                value = formatNumber(video.viewCount);
+                                icon = 'eye';
+                                label = 'Most Viewed';
+                                break;
+                            case 'subscribers':
+                                value = formatNumber(video.subscriberCount);
+                                icon = 'users';
+                                label = 'Most Subscribers';
+                                break;
+                            case 'videos':
+                                value = formatNumber(video.videoCount);
+                                icon = 'video';
+                                label = 'Most Videos';
+                                break;
+                            case 'likes':
+                                value = formatNumber(video.likeCount);
+                                icon = 'thumbs-up';
+                                label = 'Most Liked';
+                                break;
+                            case 'comments':
+                                value = formatNumber(video.commentCount);
+                                icon = 'comments';
+                                label = 'Most Comments';
+                                break;
+                            case 'engagement':
+                                const totalEngagements = (video.likeCount || 0) + (video.commentCount || 0);
+                                const engagementRate = video.viewCount > 0 
+                                    ? ((totalEngagements * 100.0) / video.viewCount).toFixed(2)
+                                    : '0.00';
+                                value = engagementRate + '%';
+                                icon = 'chart-line';
+                                label = 'Highest Engagement';
+                                break;
+                        }
+                        
+                        const tooltipHtml = category === 'engagement' 
+                            ? `<div class="stat-description" style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                                Engagement rate shows how interactive your audience is with your content.<br>
+                                Formula: (Likes + Comments) / Views × 100
+                               </div>`
+                            : '';
+                        
+                        return `
+                            <div class="card">
+                                <div class="stat-label">
+                                    <i class="fas fa-${icon}"></i> 
+                                    ${label}
+                                    ${tooltipHtml}
+                                </div>
+                                <div class="stat-value">${value}</div>
+                                <div class="channel-name">Channel Name: ${video.channelName || 'Unknown Channel'}</div>
+                                <div class="video-title" style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                                    Title: ${video.title || 'Untitled Video'}
+                                </div>
+                            </div>
+                        `;
+                    })
+                    .join('');
+
+                document.getElementById('topPerformers').innerHTML = topPerformersHtml || 
+                    '<div class="card"><div class="stat-label">No top performers data available</div></div>';
+            } catch (error) {
+                console.error('Error fetching top performers:', error);
+                showError('topPerformers', 'Failed to load top performers. Please try again later.');
+            }
+        }
+
+        // Fetch and display video list
+        async function fetchVideos() {
+            try {
+                const response = await fetch('/api/analytics/videos', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                const videos = await response.json();
+
+                if (!videos || !Array.isArray(videos)) throw new Error('Invalid video data received');
+
+                const videoListHtml = videos.length > 0 ? videos.map(video => `
+                    <div class="video-item" data-video-id="${video.videoId}">
+                        <h3>${video.channelName || 'Unknown Channel'}</h3>
+                        <div class="video-title" style="font-size: 1.1rem; color: #1a73e8; margin: 0.5rem 0;">
+                            ${video.title || 'Untitled Video'}
+                        </div>
+                        <div class="video-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-eye"></i>
+                                ${formatNumber(video.viewCount)} views
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-thumbs-up"></i>
+                                ${formatNumber(video.likeCount)} likes
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-comments"></i>
+                                ${formatNumber(video.commentCount)} comments
+                            </div>
+                        </div>
+                        <div class="video-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-users"></i>
+                                ${formatNumber(video.subscriberCount)} subscribers
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-video"></i>
+                                ${formatNumber(video.videoCount)} videos
+                            </div>
+                        </div>
+                        <div class="video-comment" style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; font-style: italic; color: #666;">
+                            ${video.commentText ? `"${video.commentText}"` : 'No comments available'}
+                        </div>
+                        ${video.videoUrl ? 
+                            `<a href="${video.videoUrl}" target="_blank" class="video-link">
+                                <i class="fas fa-play"></i> Watch Video
+                            </a>` : 
+                            ''}
+                    </div>
+                `).join('') : '<div class="video-item">No videos available</div>';
+
+                document.getElementById('videoList').innerHTML = videoListHtml;
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+                showError('videoList', 'Failed to load videos. Please try again later.');
+            }
+        }
+
+        // Function to remove a video element from the DOM
+        function removeVideoFromUI(videoId) {
+            const videoElement = document.querySelector(`.video-item[data-video-id="${videoId}"]`);
+            if (videoElement) {
+                videoElement.style.animation = 'fadeOut 0.5s';
+                setTimeout(() => {
+                    videoElement.remove();
+                    // If no videos left, show "No videos available" message
+                    const videoList = document.getElementById('videoList');
+                    if (!videoList.children.length) {
+                        videoList.innerHTML = '<div class="video-item">No videos available</div>';
+                    }
+                    // Refresh the statistics
+                    fetchAnalytics();
+                    fetchTopPerformers();
+                }, 500);
+            }
+        }
+
+        // Add CSS animation for fade out effect
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(-20px); }
+            }
+            .video-item {
+                animation: fadeIn 0.5s;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateX(-20px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initial load
+        fetchAnalytics();
+        fetchTopPerformers();
+        fetchVideos();
+
+        // Refresh data every 30 seconds
+        setInterval(() => {
+            fetchAnalytics();
+            fetchTopPerformers();
+            fetchVideos();
+        }, 30000);
+    </script>
+</body>
+</html> 

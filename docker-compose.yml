@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: youtube-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: youtube_analysis
+      MYSQL_USER: youtube_user
+      MYSQL_PASSWORD: youtube_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - youtube-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: youtube-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_KRAFT_CLUSTER_ID=ic_eSOUJSJ2MYS6vqWxYog
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_LOG_DIRS=/bitnami/kafka/kraft-combined-logs
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_CFG_MIN_INSYNC_REPLICAS=1
+      - BITNAMI_DEBUG=yes
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - youtube-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  spring-producer:
+    build:
+      context: ./spring-producer
+      dockerfile: Dockerfile
+    container_name: youtube-producer
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/youtube_analysis
+      SPRING_DATASOURCE_USERNAME: youtube_user
+      SPRING_DATASOURCE_PASSWORD: youtube_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - youtube-network
+
+  spring-consumer:
+    build:
+      context: ./spring-consumer
+      dockerfile: Dockerfile
+    container_name: youtube-consumer
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/youtube_analysis
+      SPRING_DATASOURCE_USERNAME: youtube_user
+      SPRING_DATASOURCE_PASSWORD: youtube_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - youtube-network
+
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    container_name: youtube-telegram-bot
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - youtube-network
+
+networks:
+  youtube-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  kafka_data: 
